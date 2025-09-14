@@ -264,7 +264,84 @@ router.post('/logout', authenticateAPI, async (req, res) => {
     }
 });
 
-// Webhook untuk menerima pesan masuk (opsional)
+// POST /api/webhook/config - Konfigurasi webhook
+router.post('/webhook/config', authenticateAPI, async (req, res) => {
+    try {
+        const { url, secret, enabled, retryAttempts, timeout } = req.body;
+        
+        if (!url && enabled !== false) {
+            return res.status(400).json({
+                success: false,
+                message: 'URL webhook diperlukan untuk mengaktifkan webhook'
+            });
+        }
+        
+        const whatsappService = req.app.get('whatsappService');
+        
+        // Update konfigurasi webhook
+        whatsappService.webhookService.updateConfig({
+            url,
+            secret,
+            enabled,
+            retryAttempts,
+            timeout
+        });
+        
+        res.json({
+            success: true,
+            data: {
+                message: 'Konfigurasi webhook berhasil diupdate',
+                config: whatsappService.webhookService.getStatus()
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error mengupdate konfigurasi webhook',
+            error: error.message
+        });
+    }
+});
+
+// GET /api/webhook/status - Status webhook
+router.get('/webhook/status', authenticateAPI, (req, res) => {
+    try {
+        const whatsappService = req.app.get('whatsappService');
+        const status = whatsappService.webhookService.getStatus();
+        
+        res.json({
+            success: true,
+            data: status
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error mendapatkan status webhook',
+            error: error.message
+        });
+    }
+});
+
+// POST /api/webhook/test - Test webhook
+router.post('/webhook/test', authenticateAPI, async (req, res) => {
+    try {
+        const whatsappService = req.app.get('whatsappService');
+        const result = await whatsappService.webhookService.testWebhook();
+        
+        res.json({
+            success: result.success,
+            data: result
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error testing webhook',
+            error: error.message
+        });
+    }
+});
+
+// Webhook untuk menerima pesan masuk (legacy endpoint)
 router.post('/webhook', authenticateAPI, (req, res) => {
     // Endpoint ini bisa digunakan untuk menerima webhook dari sistem lain
     // atau sebagai callback untuk pesan masuk

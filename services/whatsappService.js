@@ -12,6 +12,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const QRCode = require('qrcode');
 const config = require('../config');
+const WebhookService = require('./webhookService');
 
 class WhatsAppService {
     constructor() {
@@ -21,6 +22,9 @@ class WhatsAppService {
         this.connectionState = 'disconnected';
         this.messageHandlers = [];
         this.sessionDir = path.resolve(config.sessionDir);
+        
+        // Initialize webhook service
+        this.webhookService = new WebhookService();
         
         // Pastikan direktori session ada
         fs.ensureDirSync(this.sessionDir);
@@ -118,6 +122,15 @@ class WhatsAppService {
                 };
 
                 console.log('📨 Pesan masuk:', messageData);
+                
+                // Kirim ke webhook jika dikonfigurasi
+                if (this.webhookService.enabled) {
+                    try {
+                        await this.webhookService.sendWebhook(messageData);
+                    } catch (error) {
+                        console.error('❌ Error mengirim webhook:', error);
+                    }
+                }
                 
                 // Jalankan semua message handlers
                 for (const handler of this.messageHandlers) {
