@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  whatsapp-api:
+    container_name: whatsapp_api_server
+    build:
+      context: .
+      target: api_wa
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - SESSION_DIR=/app/sessions
+      - API_KEY=whatsapp_api_secret_key_2024
+    volumes:
+      # Mount sessions untuk persistent storage
+      - ./sessions:/app/sessions
+      # Mount uploads untuk file temporary
+      - ./uploads:/app/uploads
+      # Mount logs
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - whatsapp-network
+
+networks:
+  whatsapp-network:
+    driver: bridge
